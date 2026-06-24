@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: gestdepense-api
+    env: php
+    region: frankfurt
+    plan: free
+    buildCommand: |
+      cp .env.example .env
+      composer install --no-dev --optimize-autoloader
+      mkdir -p storage/logs storage/framework/sessions storage/framework/cache storage/framework/views
+      chmod -R 775 storage bootstrap/cache
+    startCommand: sh start.sh
+    healthCheckPath: /api/up
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_URL
+        fromService:
+          type: web
+          name: gestdepense-api
+          property: url
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: SANCTUM_STATEFUL_DOMAINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+
+databases:
+  - name: gestdepense-db
+    region: frankfurt
+    plan: free
+    databaseName: gestdepense
+    user: gestdepense

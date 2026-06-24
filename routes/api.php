@@ -3,6 +3,9 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+// Health check
+Route::get('/up', fn () => response()->json(['status' => 'ok']));
+
 // Auth Routes
 Route::prefix('v1/auth')->group(function () {
     Route::post('register', 'App\Http\Controllers\Api\V1\AuthController@register');
