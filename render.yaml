@@ -17,11 +17,6 @@ services:
         sync: false
       - key: DB_CONNECTION
         value: pgsql
-      - key: DATABASE_URL
-        fromService:
-          type: pserv
-          name: gestdepense-db
-          property: connectionString
       - key: SESSION_DRIVER
         value: database
       - key: CACHE_STORE
@@ -35,7 +30,7 @@ services:
 
 databases:
   - name: gestdepense-db
-    region: oregon
+    region: frankfurt
     plan: free
     databaseName: gestdepense
     user: gestdepense
