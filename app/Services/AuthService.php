@@ -17,7 +17,13 @@ class AuthService
             'currency_code' => $data['currency_code'] ?? 'EUR',
             'timezone' => $data['timezone'] ?? 'UTC',
             'locale' => $data['locale'] ?? 'fr',
-            'preferences' => json_encode(['theme' => 'light'])
+            'preferences' => [
+                'theme' => 'light',
+                'compact_mode' => false,
+                'notifications_enabled' => true,
+                'weekly_report' => false,
+                'monthly_report' => true,
+            ],
         ]);
     }
 
