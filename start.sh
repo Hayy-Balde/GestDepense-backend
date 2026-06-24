@@ -10,6 +10,14 @@ if [ -n "$DATABASE_URL" ]; then
     export DB_HOST=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $6}')
     export DB_PORT=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $7}')
     export DB_DATABASE=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $8}')
+elif [ -n "$PGHOST" ]; then
+    # Fallback to individual PG* env vars (auto-injected by Render for non-Docker)
+    export DB_CONNECTION=pgsql
+    export DB_HOST=$PGHOST
+    export DB_PORT=${PGPORT:-5432}
+    export DB_DATABASE=$PGDATABASE
+    export DB_USERNAME=$PGUSER
+    export DB_PASSWORD=$PGPASSWORD
 fi
 
 # Generate app key if not set

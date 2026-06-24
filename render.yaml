@@ -17,7 +17,11 @@ services:
         sync: false
       - key: DB_CONNECTION
         value: pgsql
-      # DATABASE_URL is auto-injected by Render for the PostgreSQL database below
+      - key: DATABASE_URL
+        fromService:
+          type: pserv
+          name: gestdepense-db
+          property: connectionString
       - key: SESSION_DRIVER
         value: database
       - key: CACHE_STORE
