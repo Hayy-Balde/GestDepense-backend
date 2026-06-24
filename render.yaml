@@ -19,7 +19,7 @@ services:
         value: pgsql
       - key: DATABASE_URL
         fromService:
-          type: pserv
+          type: database
           name: gestdepense-db
           property: connectionString
       - key: SESSION_DRIVER
@@ -35,7 +35,7 @@ services:
 
 databases:
   - name: gestdepense-db
-    region: frankfurt
+    region: oregon
     plan: free
     databaseName: gestdepense
     user: gestdepense
