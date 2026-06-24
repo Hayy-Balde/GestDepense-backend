@@ -1,16 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Enums\SavingTransactionType;
+use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SavingTransaction extends Model
 {
-    use HasFactory, HasUuids;
+    use HasUuid;
 
-    protected $guarded = [];
+    protected $guarded = ['id'];
 
-    public function saving() { return $this->belongsTo(Saving::class); }
+    protected $casts = [
+        'type' => SavingTransactionType::class,
+        'amount' => 'decimal:2',
+        'date' => 'date',
+    ];
+
+    public function saving(): BelongsTo
+    {
+        return $this->belongsTo(Saving::class);
+    }
 }
