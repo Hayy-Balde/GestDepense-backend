@@ -1,28 +1,26 @@
 #!/usr/bin/env bash
 set -e
 
-# Génération de la clé d'application si absente
+# Si DATABASE_URL est fourni par Render, Laravel l'utilise automatiquement
+if [ -n "$DATABASE_URL" ]; then
+    export DB_CONNECTION=pgsql
+fi
+
+# Génération de la clé d'application si elle est absente
 if [ -z "$APP_KEY" ]; then
     APP_KEY=$(php -r "echo 'base64:' . base64_encode(random_bytes(32));")
     export APP_KEY
 fi
 
-# Cache config (utilise les variables d'environnement dispo)
+# Mise en cache de la configuration, des routes et des vues
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-# Attente de la base de données
+# Attente active de la base de données via les outils natifs de Laravel
 echo "Waiting for database connection..."
 for i in $(seq 1 30); do
-    if php -r "
-        \$host = getenv('DB_HOST') ?: '127.0.0.1';
-        \$port = getenv('DB_PORT') ?: '5432';
-        \$db = getenv('DB_DATABASE') ?: 'gestdepense';
-        \$user = getenv('DB_USERNAME') ?: 'gestdepense';
-        \$pass = getenv('DB_PASSWORD') ?: 'secret';
-        new PDO(\"pgsql:host=\$host;port=\$port;dbname=\$db\", \$user, \$pass);
-    " 2>/dev/null; then
+    if php artisan db:monitor &>/dev/null || php artisan db:show &>/dev/null; then
         echo "Database connected."
         break
     fi
@@ -30,7 +28,7 @@ for i in $(seq 1 30); do
     sleep 2
 done
 
-# Exécution des migrations
+# Exécution des migrations obligatoires
 php artisan migrate --force
 
 # Démarrage de Nginx en arrière-plan
