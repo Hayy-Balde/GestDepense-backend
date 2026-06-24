@@ -12,6 +12,9 @@ WORKDIR /app
 # Application
 COPY . .
 
+# Create .env from example (required for key:generate)
+RUN cp .env.example .env
+
 # Install dependencies
 RUN composer install --no-dev --optimize-autoloader
 
