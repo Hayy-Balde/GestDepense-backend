@@ -35,7 +35,7 @@ services:
 
 databases:
   - name: gestdepense-db
-    region: oregon
+    region: frankfurt
     plan: free
     databaseName: gestdepense
     user: gestdepense
