@@ -5,11 +5,11 @@ set -e
 if [ -n "$DATABASE_URL" ]; then
     export DB_CONNECTION=pgsql
     # Format: postgres://user:password@host:port/dbname?sslmode=require
-    export DB_USERNAME=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $4}')
-    export DB_PASSWORD=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $5}')
-    export DB_HOST=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $6}')
-    export DB_PORT=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $7}')
-    export DB_DATABASE=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $8}')
+    export DB_USERNAME=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $3}')
+    export DB_PASSWORD=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $4}')
+    export DB_HOST=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $5}')
+    export DB_PORT=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $6}')
+    export DB_DATABASE=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $7}')
 elif [ -n "$PGHOST" ]; then
     # Fallback to individual PG* env vars (auto-injected by Render)
     export DB_CONNECTION=pgsql
