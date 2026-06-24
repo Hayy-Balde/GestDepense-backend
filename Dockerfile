@@ -12,7 +12,7 @@ WORKDIR /app
 # Application
 COPY . .
 
-# Create .env from example (required for key:generate)
+# Create .env from example
 RUN cp .env.example .env
 
 # Install dependencies

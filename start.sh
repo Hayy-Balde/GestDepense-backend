@@ -11,18 +11,22 @@ if [ -n "$DATABASE_URL" ]; then
     export DB_PORT=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $7}')
     export DB_DATABASE=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $8}')
 elif [ -n "$PGHOST" ]; then
-    # Fallback to individual PG* env vars (auto-injected by Render for non-Docker)
+    # Fallback to individual PG* env vars (auto-injected by Render)
     export DB_CONNECTION=pgsql
     export DB_HOST=$PGHOST
     export DB_PORT=${PGPORT:-5432}
     export DB_DATABASE=$PGDATABASE
     export DB_USERNAME=$PGUSER
     export DB_PASSWORD=$PGPASSWORD
+elif [ -n "$DB_HOST" ]; then
+    # Already set via .env or explicit env vars
+    export DB_CONNECTION=pgsql
 fi
 
 # Generate app key if not set
 if [ -z "$APP_KEY" ]; then
-    php artisan key:generate --force
+    APP_KEY=$(php -r "echo 'base64:' . base64_encode(random_bytes(32));")
+    export APP_KEY
 fi
 
 # Cache config, routes, views (these don't need the database)
