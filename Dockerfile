@@ -25,9 +25,8 @@ RUN chmod -R 775 storage bootstrap/cache \
 # Nginx configuration
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 
-# PHP-FPM config: listen on TCP
-RUN sed -i 's|listen = 127.0.0.1:9000|listen = 127.0.0.1:9000|' /usr/local/etc/php-fpm.d/zz-docker.conf \
-    && sed -i 's|listen = 9000|listen = 127.0.0.1:9000|' /usr/local/etc/php-fpm.d/zz-docker.conf
+# PHP-FPM config: listen on TCP 127.0.0.1:9000
+RUN sed -i 's|listen = 9000|listen = 127.0.0.1:9000|' /usr/local/etc/php-fpm.d/zz-docker.conf
 
 EXPOSE 8080
 
