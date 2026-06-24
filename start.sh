@@ -1,43 +1,26 @@
 #!/usr/bin/env bash
 set -e
 
-# Parse DATABASE_URL if provided (Render PostgreSQL connection string)
+# Si DATABASE_URL est fourni par Render, on s'assure que Laravel l'utilise
 if [ -n "$DATABASE_URL" ]; then
-    export DB_CONNECTION=pgsql
-    # Format: postgres://user:password@host:port/dbname?sslmode=require
-    export DB_USERNAME=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $3}')
-    export DB_PASSWORD=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $4}')
-    export DB_HOST=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $5}')
-    export DB_PORT=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $6}')
-    export DB_DATABASE=$(echo "$DATABASE_URL" | awk -F'[/:@?]' '{print $7}')
-elif [ -n "$PGHOST" ]; then
-    # Fallback to individual PG* env vars (auto-injected by Render)
-    export DB_CONNECTION=pgsql
-    export DB_HOST=$PGHOST
-    export DB_PORT=${PGPORT:-5432}
-    export DB_DATABASE=$PGDATABASE
-    export DB_USERNAME=$PGUSER
-    export DB_PASSWORD=$PGPASSWORD
-elif [ -n "$DB_HOST" ]; then
-    # Already set via .env or explicit env vars
     export DB_CONNECTION=pgsql
 fi
 
-# Generate app key if not set
+# Génération de la clé d'application si absente
 if [ -z "$APP_KEY" ]; then
     APP_KEY=$(php -r "echo 'base64:' . base64_encode(random_bytes(32));")
     export APP_KEY
 fi
 
-# Cache config, routes, views (these don't need the database)
+# Mises en cache Laravel (n'ont pas besoin de la base de données)
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-# Wait for database to be ready
+# Attente de la base de données en utilisant directement l'environnement Laravel
 echo "Waiting for database connection..."
 for i in $(seq 1 30); do
-    if php -r "new PDO('pgsql:host=${DB_HOST};port=${DB_PORT};dbname=${DB_DATABASE}', '${DB_USERNAME}', '${DB_PASSWORD}');" 2>/dev/null; then
+    if php artisan db:monitor &>/dev/null || php artisan db:show &>/dev/null; then
         echo "Database connected."
         break
     fi
@@ -45,12 +28,12 @@ for i in $(seq 1 30); do
     sleep 2
 done
 
-# Run migrations
+# Exécution des migrations
 php artisan migrate --force
 
-# Start Nginx in background
+# Démarrage de Nginx en arrière-plan
 nginx -g 'daemon off;' &
 NGINX_PID=$!
 
-# Start PHP-FPM in foreground
+# Démarrage de PHP-FPM au premier plan
 php-fpm -F -R
