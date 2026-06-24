@@ -12,8 +12,8 @@ WORKDIR /app
 # Application
 COPY . .
 
-# Create .env from example (required for key:generate)
-RUN cp .env.example .env
+# Create minimal .env (build only, runtime vars override it)
+RUN echo "APP_ENV=production\nAPP_KEY=" > .env
 
 # Install dependencies
 RUN composer install --no-dev --optimize-autoloader
