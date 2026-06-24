@@ -3,7 +3,6 @@ set -e
 
 # Parse DATABASE_URL if provided (Render PostgreSQL connection string)
 if [ -n "$DATABASE_URL" ]; then
-    # Format: postgres://user:password@host:port/dbname
     export DB_CONNECTION=pgsql
     export DB_HOST=$(echo "$DATABASE_URL" | sed -E 's|^postgres://[^:]+:[^@]+@([^:]+).*$|\1|')
     export DB_PORT=$(echo "$DATABASE_URL" | sed -E 's|^postgres://[^:]+:[^@]+@[^:]+:([^/]+).*$|\1|')
@@ -13,7 +12,7 @@ if [ -n "$DATABASE_URL" ]; then
 fi
 
 # Generate app key if not set
-if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:..." ]; then
+if [ -z "$APP_KEY" ]; then
     php artisan key:generate --force
 fi
 
@@ -26,5 +25,9 @@ php artisan view:cache
 # Run migrations
 php artisan migrate --force
 
-# Start PHP-FPM
-exec php-fpm
+# Start Nginx in background
+nginx -g 'daemon off;' &
+NGINX_PID=$!
+
+# Start PHP-FPM in foreground
+php-fpm -F -R
