@@ -13,10 +13,18 @@ services:
         value: false
       - key: APP_URL
         value: https://gestdepense-api.onrender.com
-      - key: APP_KEY
-        sync: false
       - key: DB_CONNECTION
         value: pgsql
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
       - key: SESSION_DRIVER
         value: database
       - key: CACHE_STORE
@@ -30,7 +38,7 @@ services:
 
 databases:
   - name: gestdepense-db
-    region: frankfurt
+    region: oregon
     plan: free
     databaseName: gestdepense
     user: gestdepense
