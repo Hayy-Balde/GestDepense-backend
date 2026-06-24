@@ -1,15 +1,10 @@
 services:
   - type: web
     name: gestdepense-api
-    env: php
+    env: docker
     region: frankfurt
     plan: free
-    buildCommand: |
-      cp .env.example .env
-      composer install --no-dev --optimize-autoloader
-      mkdir -p storage/logs storage/framework/sessions storage/framework/cache storage/framework/views
-      chmod -R 775 storage bootstrap/cache
-    startCommand: sh start.sh
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /api/up
     envVars:
       - key: APP_ENV
@@ -17,10 +12,16 @@ services:
       - key: APP_DEBUG
         value: false
       - key: APP_URL
+        value: https://gestdepense-api.onrender.com
+      - key: APP_KEY
+        sync: false
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DATABASE_URL
         fromService:
-          type: web
-          name: gestdepense-api
-          property: url
+          type: pserv
+          name: gestdepense-db
+          property: connectionString
       - key: SESSION_DRIVER
         value: database
       - key: CACHE_STORE
@@ -34,7 +35,7 @@ services:
 
 databases:
   - name: gestdepense-db
-    region: frankfurt
+    region: oregon
     plan: free
     databaseName: gestdepense
     user: gestdepense
