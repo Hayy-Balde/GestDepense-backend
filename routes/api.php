@@ -4,21 +4,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 
-// Health check
-Route::get('/up', function () {
-    $db = 'disconnected';
-    try {
-        DB::connection()->getPdo();
-        $db = 'connected';
-    } catch (\Throwable) {
-        $db = 'disconnected';
-    }
-    return response()->json([
-        'status' => 'ok',
-        'database' => $db,
-        'timestamp' => now()->toIso8601String(),
-    ]);
-});
 
 // Auth Routes
 Route::prefix('v1/auth')->group(function () {
