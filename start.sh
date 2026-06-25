@@ -1,23 +1,17 @@
 #!/usr/bin/env bash
 set -e
 
-# Si DATABASE_URL est fourni par Render, Laravel l'utilise automatiquement
+# Si DATABASE_URL est fourni par Render
 if [ -n "$DATABASE_URL" ]; then
     export DB_CONNECTION=pgsql
 fi
 
-# Génération de la clé d'application si elle est absente
-# if [ -z "$APP_KEY" ]; then
-#     APP_KEY=$(php -r "echo 'base64:' . base64_encode(random_bytes(32));")
-#     export APP_KEY
-# fi
+# IMPORTANT : On vide les caches au démarrage pour éviter les conflits
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
 
-# Mise en cache de la configuration, des routes et des vues
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-
-# Attente active de la base de données via les outils natifs de Laravel
+# Attente active de la base de données
 echo "Waiting for database connection..."
 for i in $(seq 1 30); do
     if php artisan db:monitor &>/dev/null || php artisan db:show &>/dev/null; then
@@ -30,6 +24,10 @@ done
 
 # Exécution des migrations obligatoires
 php artisan migrate --force
+
+# Recréer le cache proprement si nécessaire (optionnel, vous pouvez aussi laisser clear en dev)
+php artisan config:cache
+php artisan route:cache
 
 # Démarrage de Nginx en arrière-plan
 nginx -g 'daemon off;' &
