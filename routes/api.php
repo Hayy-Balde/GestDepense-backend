@@ -5,6 +5,10 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 
 
+// Social Auth (without prefix — full URL needed for OAuth redirects)
+Route::get('auth/{provider}/redirect', 'App\Http\Controllers\Api\V1\SocialAuthController@redirect');
+Route::get('auth/{provider}/callback', 'App\Http\Controllers\Api\V1\SocialAuthController@callback');
+
 // Auth Routes
 Route::prefix('v1/auth')->group(function () {
     Route::post('register', 'App\Http\Controllers\Api\V1\AuthController@register');
