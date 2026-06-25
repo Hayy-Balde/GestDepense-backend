@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\SettingsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,26 @@ Route::prefix('v1/auth')->group(function () {
         Route::post('logout', 'App\Http\Controllers\Api\V1\AuthController@logout');
         Route::get('user', 'App\Http\Controllers\Api\V1\AuthController@user');
         Route::put('user', 'App\Http\Controllers\Api\V1\AuthController@updateProfile');
+
+        // Settings
+        Route::get('profile', [SettingsController::class, 'profile']);
+        Route::put('profile', [SettingsController::class, 'updateProfile']);
+        Route::put('preferences', [SettingsController::class, 'updatePreferences']);
+        Route::put('password', [SettingsController::class, 'updatePassword']);
+        Route::delete('account', [SettingsController::class, 'deleteAccount']);
+
+        // Sessions
+        Route::get('sessions', [SettingsController::class, 'sessions']);
+        Route::delete('sessions/{id}', [SettingsController::class, 'revokeSession']);
+
+        // Avatar
+        Route::post('avatar', [SettingsController::class, 'updateAvatar']);
+
+        // 2FA
+        Route::get('2fa', [SettingsController::class, 'twoFactorStatus']);
+        Route::post('2fa/enable', [SettingsController::class, 'enable2fa']);
+        Route::post('2fa/verify', [SettingsController::class, 'verify2fa']);
+        Route::post('2fa/disable', [SettingsController::class, 'disable2fa']);
     });
 });
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\UserAgentParser;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuthService;
@@ -29,7 +30,13 @@ class AuthController extends Controller
 
         $user = $this->authService->registerUser($validated);
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $deviceName = UserAgentParser::deviceName($request->userAgent());
+        $token = $user->createToken($deviceName)->plainTextToken;
+
+        $user->tokens()->latest()->first()->update([
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         return response()->json([
             'access_token' => $token,
@@ -50,7 +57,14 @@ class AuthController extends Controller
         // Revoke old tokens
         $user->tokens()->delete();
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $deviceName = UserAgentParser::deviceName($request->userAgent());
+        $token = $user->createToken($deviceName)->plainTextToken;
+
+        // Save IP and user agent on the token
+        $user->tokens()->latest()->first()->update([
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         return response()->json([
             'access_token' => $token,

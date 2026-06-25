@@ -25,6 +25,9 @@ done
 # Exécution des migrations obligatoires
 php artisan migrate --force
 
+# Création du lien symbolique storage (pour les avatars)
+php artisan storage:link --force 2>/dev/null || true
+
 # Recréer le cache proprement si nécessaire (optionnel, vous pouvez aussi laisser clear en dev)
 php artisan config:cache
 php artisan route:cache
