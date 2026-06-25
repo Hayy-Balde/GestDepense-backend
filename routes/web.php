@@ -21,4 +21,4 @@ Route::get('/testbd', function () {
         'database' => $db,
         'timestamp' => now()->toIso8601String(),
     ]);
-});
+})->name('testbd');
