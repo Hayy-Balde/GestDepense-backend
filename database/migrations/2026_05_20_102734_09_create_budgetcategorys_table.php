@@ -8,10 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create("budgetcategorys", function (Blueprint $table) {
+        Schema::create("budget_categories", function (Blueprint $table) {
             $table->uuid("id")->primary();
             $table->foreignUuid("budget_id")->constrained("budgets")->cascadeOnDelete();
             $table->foreignUuid("category_id")->constrained("categories")->cascadeOnDelete();
+            $table->decimal("spent_amount", 12, 2);
             $table->decimal("allocated_amount", 12, 2);
             $table->timestamps();
         });
@@ -19,6 +20,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists("budgetcategorys");
+        Schema::dropIfExists("budget_categories");
     }
 };

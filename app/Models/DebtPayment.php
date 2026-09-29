@@ -10,7 +10,11 @@ class DebtPayment extends Model
 {
     use HasFactory, HasUuids;
 
+    protected $table = 'debtpayments';
+
     protected $guarded = [];
 
     public function debt() { return $this->belongsTo(Debt::class); }
+
+    public function account() { return $this->belongsTo(Account::class); }
 }

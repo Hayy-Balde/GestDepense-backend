@@ -10,6 +10,7 @@ use App\Traits\HasUuid;
 use App\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Saving extends Model
@@ -36,6 +37,11 @@ class Saving extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(SavingTransaction::class)->orderByDesc('date');
+    }
+
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(Account::class);
     }
 
     public function getProgressAttribute(): float

@@ -13,6 +13,8 @@ class SavingTransaction extends Model
 {
     use HasUuid;
 
+    protected $table = 'saving_transactions';
+
     protected $guarded = ['id'];
 
     protected $casts = [
@@ -21,7 +23,7 @@ class SavingTransaction extends Model
         'date' => 'date',
     ];
 
-    public function saving(): BelongsTo
+    public function savingGoal(): BelongsTo
     {
         return $this->belongsTo(Saving::class);
     }

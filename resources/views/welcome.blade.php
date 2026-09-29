@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ config('app.name', 'GestDepense') }} API</title>
+    <title>{{ config('app.name', 'Fin-Track') }} API</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{
@@ -104,7 +104,7 @@
             v{{ app()->version() }}
         </div>
 
-        <h1>{{ config('app.name', 'GestDepense') }}</h1>
+        <h1>{{ config('app.name', 'Fin-Track') }}</h1>
         <p class="subtitle">
             API de gestion des dépenses personnelles<br>
             <strong>{{ config('app.url') }}</strong>
@@ -128,12 +128,12 @@
             <div class="card">
                 <span class="icon">🔗</span>
                 <div class="label">Frontend</div>
-                <div class="value"><a href="{{ env('FRONTEND_URL', '#') }}" target="_blank" rel="noopener">gestdepense.vercel.app ↗</a></div>
+                <div class="value"><a href="{{ env('FRONTEND_URL', '#') }}" target="_blank" rel="noopener">Fin-Track.app ↗</a></div>
             </div>
         </div>
 
         <div class="links">
-            <a href="https://gestdepense.vercel.app" target="_blank" rel="noopener" class="primary">
+            <a href="{{ env('FRONTEND_URL', '#') }}" target="_blank" rel="noopener" class="primary">
                 Accéder à l'application
             </a>
             <a href="{{ route('testbd') }}" class="secondary">
@@ -171,7 +171,7 @@
         </div>
 
         <footer>
-            GestDepense &copy; {{ date('Y') }} &middot;
+            Fin-Track &copy; {{ date('Y') }} &middot;
             <a href="https://github.com/Hayy-Balde/GestDepense-backend" target="_blank" rel="noopener">GitHub</a>
         </footer>
     </div>

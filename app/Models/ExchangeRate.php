@@ -10,6 +10,8 @@ class ExchangeRate extends Model
 {
     use HasFactory, HasUuids;
 
+    protected $table = 'exchangerates';
+
     protected $guarded = [];
 
 

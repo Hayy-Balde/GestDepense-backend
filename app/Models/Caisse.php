@@ -9,6 +9,7 @@ use App\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Caisse extends Model
 {
@@ -19,6 +20,7 @@ class Caisse extends Model
     protected $casts = [
         'budget_amount' => 'decimal:2',
         'spent_amount' => 'decimal:2',
+        'status' => 'string',
     ];
 
     protected $attributes = [
@@ -30,6 +32,11 @@ class Caisse extends Model
     public function expenses(): HasMany
     {
         return $this->hasMany(Expense::class);
+    }
+
+    public function sourceAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'source_account_id');
     }
 
     public function getRemainingAttribute(): float
@@ -46,15 +53,5 @@ class Caisse extends Model
     public function isOverBudget(): bool
     {
         return (float) $this->spent_amount > (float) $this->budget_amount;
-    }
-
-    public function addSpending(float $amount): void
-    {
-        $this->increment('spent_amount', $amount);
-    }
-
-    public function removeSpending(float $amount): void
-    {
-        $this->decrement('spent_amount', $amount);
     }
 }

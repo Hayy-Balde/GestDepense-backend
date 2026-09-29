@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create("savingtransactions", function (Blueprint $table) {
+        Schema::create("saving_transactions", function (Blueprint $table) {
             $table->uuid("id")->primary();
             $table->foreignUuid("saving_id")->constrained("savings")->cascadeOnDelete();
             $table->enum("type", ["deposit", "withdrawal"]);

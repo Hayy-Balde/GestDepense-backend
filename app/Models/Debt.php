@@ -2,16 +2,24 @@
 
 namespace App\Models;
 
+use App\Traits\HasUuid;
+use App\Traits\BelongsToUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Debt extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuid, BelongsToUser;
 
-    protected $guarded = [];
+    protected $guarded = ['id'];
 
-    public function user() { return $this->belongsTo(User::class); }
-    public function payments() { return $this->hasMany(DebtPayment::class); }
+    protected $casts = [
+        'amount' => 'decimal:2',
+        'remaining_amount' => 'decimal:2',
+    ];
+
+    public function account(): BelongsTo { return $this->belongsTo(Account::class); }
+    public function payments(): HasMany { return $this->hasMany(DebtPayment::class); }
 }

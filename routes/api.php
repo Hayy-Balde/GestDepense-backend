@@ -21,6 +21,7 @@ Route::prefix('v1/auth')->group(function () {
         Route::post('logout', 'App\Http\Controllers\Api\V1\AuthController@logout');
         Route::get('user', 'App\Http\Controllers\Api\V1\AuthController@user');
         Route::put('user', 'App\Http\Controllers\Api\V1\AuthController@updateProfile');
+        Route::post('verify-password', 'App\Http\Controllers\Api\V1\AuthController@verifyPassword');
 
         // Settings
         Route::get('profile', [SettingsController::class, 'profile']);
@@ -50,44 +51,85 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::apiResource('accounts', 'App\Http\Controllers\Api\V1\AccountController');
 
     // Expenses
+    Route::get('expenses/stats', 'App\Http\Controllers\Api\V1\ExpenseStatsController@index');
     Route::get('expenses/export', 'App\Http\Controllers\Api\V1\ExpenseController@export');
     Route::apiResource('expenses', 'App\Http\Controllers\Api\V1\ExpenseController');
 
     // Incomes
+    Route::get('incomes/stats', 'App\Http\Controllers\Api\V1\IncomeStatsController@index');
     Route::apiResource('incomes', 'App\Http\Controllers\Api\V1\IncomeController');
 
     // Categories
-    Route::apiResource('categories', 'App\Http\Controllers\Api\V1\CategoryController')->only(['index', 'store']);
+    Route::apiResource('categories', 'App\Http\Controllers\Api\V1\CategoryController')->only(['index', 'store', 'update', 'destroy']);
+
+    // App Config / Config tables
+    Route::get('config', 'App\Http\Controllers\Api\V1\ConfigController@index');
+    Route::resource('config/account-types', 'App\Http\Controllers\Api\V1\AccountTypeController')->parameters(['account-types' => 'value']);
+    Route::resource('config/payment-methods', 'App\Http\Controllers\Api\V1\PaymentMethodController')->parameters(['payment-methods' => 'value']);
+    Route::resource('config/billing-cycles', 'App\Http\Controllers\Api\V1\BillingCycleController')->parameters(['billing-cycles' => 'value']);
+    Route::resource('config/debt-types', 'App\Http\Controllers\Api\V1\DebtTypeController')->parameters(['debt-types' => 'value']);
+    Route::resource('config/currencies', 'App\Http\Controllers\Api\V1\CurrencyController')->parameters(['currencies' => 'value']);
 
     // Caisses
     Route::get('caisses/{id}/stats', 'App\Http\Controllers\Api\V1\CaisseController@stats');
-    Route::apiResource('caisses', 'App\Http\Controllers\Api\V1\CaisseController')->only(['index', 'store']);
+    Route::post('caisses/{id}/fund', 'App\Http\Controllers\Api\V1\CaisseController@fund');
+    Route::post('caisses/{id}/close', 'App\Http\Controllers\Api\V1\CaisseController@close');
+    Route::post('caisses/{id}/transfer', 'App\Http\Controllers\Api\V1\CaisseController@transfer');
+    Route::apiResource('caisses', 'App\Http\Controllers\Api\V1\CaisseController')->only(['index', 'store', 'show', 'update', 'destroy']);
+
+    // Movements (history of all money movements)
+    Route::get('movements/stats', 'App\Http\Controllers\Api\V1\MovementController@stats');
+    Route::get('movements', 'App\Http\Controllers\Api\V1\MovementController@index');
+
+    // Account money operations
+    Route::post('accounts/{id}/apport', 'App\Http\Controllers\Api\V1\AccountController@apport');
+    Route::post('accounts/{id}/regulate', 'App\Http\Controllers\Api\V1\AccountController@regulate');
+    Route::post('accounts/{id}/transfer', 'App\Http\Controllers\Api\V1\AccountController@transfer');
+
+    // Reports
+    Route::get('reports/summary', 'App\Http\Controllers\Api\V1\ReportController@summary');
 
     // Savings
     Route::post('savings/{id}/deposit', 'App\Http\Controllers\Api\V1\SavingController@deposit');
     Route::post('savings/{id}/withdraw', 'App\Http\Controllers\Api\V1\SavingController@withdraw');
-    Route::apiResource('savings', 'App\Http\Controllers\Api\V1\SavingController')->only(['index', 'store']);
+    Route::apiResource('savings', 'App\Http\Controllers\Api\V1\SavingController')->only(['index', 'store', 'update', 'destroy']);
 
     // Budgets
+    Route::get('budgets/by-category', 'App\Http\Controllers\Api\V1\BudgetController@byCategory');
     Route::get('budgets/{month}/{year}', 'App\Http\Controllers\Api\V1\BudgetController@getByMonth');
     Route::apiResource('budgets', 'App\Http\Controllers\Api\V1\BudgetController')->only(['index', 'store']);
 
     // Subscriptions
-    Route::apiResource('subscriptions', 'App\Http\Controllers\Api\V1\SubscriptionController')->only(['index', 'store']);
+    Route::post('subscriptions/{id}/pay', 'App\Http\Controllers\Api\V1\SubscriptionController@pay');
+    Route::put('subscriptions/{id}/toggle', 'App\Http\Controllers\Api\V1\SubscriptionController@toggle');
+    Route::apiResource('subscriptions', 'App\Http\Controllers\Api\V1\SubscriptionController')->only(['index', 'store', 'update', 'destroy']);
 
     // Debts
-    Route::post('debts/{id}/payment', 'App\Http\Controllers\Api\V1\DebtController@payment');
-    Route::apiResource('debts', 'App\Http\Controllers\Api\V1\DebtController')->only(['index', 'store']);
+    Route::post('debts/{id}/payments', 'App\Http\Controllers\Api\V1\DebtController@payment');
+    Route::apiResource('debts', 'App\Http\Controllers\Api\V1\DebtController')->only(['index', 'store', 'update', 'destroy']);
+
+    // Invoices (factures)
+    Route::post('invoices/{id}/payments', 'App\Http\Controllers\Api\V1\InvoiceController@payment');
+    Route::apiResource('invoices', 'App\Http\Controllers\Api\V1\InvoiceController')->only(['index', 'store', 'update', 'destroy']);
 
     // Dashboard
     Route::prefix('dashboard')->group(function () {
         Route::get('/', 'App\Http\Controllers\Api\V1\DashboardController@index');
         Route::get('monthly-summary', 'App\Http\Controllers\Api\V1\DashboardController@monthlySummary');
         Route::get('trends', 'App\Http\Controllers\Api\V1\DashboardController@trends');
-        Route::get('category-breakdown', 'App\Http\Controllers\Api\V1\DashboardController@categoryBreakdown');
+    });
+
+    // Analytics
+    Route::prefix('analytics')->group(function () {
+        Route::get('trends', 'App\Http\Controllers\Api\V1\AnalyticsController@trends');
+        Route::get('breakdown', 'App\Http\Controllers\Api\V1\AnalyticsController@breakdown');
+        Route::get('monthly', 'App\Http\Controllers\Api\V1\AnalyticsController@monthly');
     });
 
     // Notifications
     Route::get('notifications', 'App\Http\Controllers\Api\V1\NotificationController@index');
     Route::put('notifications/{id}/read', 'App\Http\Controllers\Api\V1\NotificationController@read');
+
+    // Recherche globale
+    Route::get('search', 'App\Http\Controllers\Api\V1\SearchController@search');
 });

@@ -10,6 +10,8 @@ class AuditLog extends Model
 {
     use HasFactory, HasUuids;
 
+    protected $table = 'auditlogs';
+
     protected $guarded = [];
 
     public function user() { return $this->belongsTo(User::class); }

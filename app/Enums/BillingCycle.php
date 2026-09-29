@@ -30,4 +30,14 @@ enum BillingCycle: string
             self::YEARLY => 1,
         };
     }
+
+    public function monthlyMultiplier(): int
+    {
+        return match ($this) {
+            self::WEEKLY => 0,
+            self::MONTHLY => 1,
+            self::QUARTERLY => 3,
+            self::YEARLY => 12,
+        };
+    }
 }

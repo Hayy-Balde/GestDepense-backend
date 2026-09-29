@@ -8,10 +8,6 @@ use Illuminate\Database\Eloquent\Builder;
 
 trait Filterable
 {
-    protected array $searchable = [];
-    protected array $filterable = [];
-    protected string $defaultSort = 'created_at';
-
     public function scopeFilter(Builder $query, array $filters): Builder
     {
         foreach ($filters as $field => $value) {

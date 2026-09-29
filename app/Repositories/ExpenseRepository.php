@@ -27,6 +27,10 @@ class ExpenseRepository implements ExpenseRepositoryInterface
             $query->where('date', '<=', $filters['end_date']);
         }
 
+        if (!empty($filters['month']) && !empty($filters['year'])) {
+            $query->whereYear('date', $filters['year'])->whereMonth('date', $filters['month']);
+        }
+
         return $query->latest('date')->paginate(15);
     }
 

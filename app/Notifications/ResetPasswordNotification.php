@@ -21,7 +21,7 @@ class ResetPasswordNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $frontendUrl = config('app.frontend_url', 'http://localhost:5173');
+        $frontendUrl = config('app.frontend_url', 'http://localhost:12005');
         $resetUrl = "{$frontendUrl}/reinitialiser-mot-de-passe?token={$this->token}&email={$notifiable->getEmailForPasswordReset()}";
 
         return (new MailMessage)

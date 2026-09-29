@@ -21,7 +21,7 @@ class SettingsController extends Controller
     {
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'phone' => 'sometimes|string|max:20',
+            'phone' => 'sometimes|nullable|string|max:20',
         ]);
 
         $request->user()->update($validated);
@@ -42,8 +42,10 @@ class SettingsController extends Controller
             'preferences.theme' => 'sometimes|in:light,dark,system',
             'preferences.compact_mode' => 'sometimes|boolean',
             'preferences.notifications_enabled' => 'sometimes|boolean',
+            'preferences.push_notifications' => 'sometimes|boolean',
             'preferences.weekly_report' => 'sometimes|boolean',
             'preferences.monthly_report' => 'sometimes|boolean',
+            'preferences.newsletter' => 'sometimes|boolean',
         ]);
 
         $user = $request->user();

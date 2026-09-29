@@ -15,6 +15,10 @@ class Budget extends Model
 
     protected $guarded = ['id'];
 
+    protected $with = ['categories.category'];
+
+    protected $appends = ['total_spent', 'remaining'];
+
     protected $casts = [
         'total_budget' => 'decimal:2',
         'month' => 'integer',

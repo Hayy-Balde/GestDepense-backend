@@ -54,9 +54,6 @@ class AuthController extends Controller
 
         $user = $this->authService->authenticate($request->email, $request->password);
 
-        // Revoke old tokens
-        $user->tokens()->delete();
-
         $deviceName = UserAgentParser::deviceName($request->userAgent());
         $token = $user->createToken($deviceName)->plainTextToken;
 
@@ -77,6 +74,21 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Déconnecté avec succès']);
+    }
+
+    public function verifyPassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        if (! Hash::check($request->password, $request->user()->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['Mot de passe incorrect.'],
+            ]);
+        }
+
+        return response()->json(['message' => 'Mot de passe vérifié.']);
     }
 
     public function user(Request $request)

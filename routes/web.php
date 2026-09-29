@@ -4,6 +4,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
+    if (file_exists(public_path('index.html'))) {
+        return response()->file(public_path('index.html'));
+    }
     return view('welcome');
 });
 
@@ -22,3 +25,10 @@ Route::get('/testbd', function () {
         'timestamp' => now()->toIso8601String(),
     ]);
 })->name('testbd');
+
+// SPA fallback (actif seulement si le build frontend est présent dans public/)
+if (file_exists(public_path('index.html'))) {
+    Route::get('/{view}', function () {
+        return response()->file(public_path('index.html'));
+    })->where('view', '^(?!api/).*');
+}

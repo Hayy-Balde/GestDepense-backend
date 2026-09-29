@@ -20,12 +20,15 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
+        'http://localhost:12000',
+        'http://127.0.0.1:12000',
+        'http://localhost:12005',
+        'http://127.0.0.1:12005',
         'http://localhost:5173',
-        'http://localhost:5174',
         'http://127.0.0.1:5173',
+        'http://localhost:5174',
         'http://127.0.0.1:5174',
         env('FRONTEND_URL'),
-        'https://gestdepense.vercel.app',
     ],
 
     'allowed_origins_patterns' => [],
