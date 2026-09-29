@@ -14,7 +14,13 @@ class DebtPayment extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'amount' => 'float',
+        'date' => 'date',
+    ];
+
     public function debt() { return $this->belongsTo(Debt::class); }
 
     public function account() { return $this->belongsTo(Account::class); }
+    public function caisse() { return $this->belongsTo(Caisse::class); }
 }

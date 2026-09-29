@@ -17,6 +17,7 @@ class Movement extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'date' => 'date',
     ];
 
     public const TYPE_APPORT = 'apport';
@@ -28,6 +29,27 @@ class Movement extends Model
     public const TYPE_CAISSE_REFUND = 'caisse_refund';
     public const TYPE_CAISSE_CLOSE = 'caisse_close';
     public const TYPE_OUT = 'out';
+    public const TYPE_DEBT_LEND = 'debt_lend';
+    public const TYPE_DEBT_BORROW = 'debt_borrow';
+    public const TYPE_DEBT_REPAYMENT = 'debt_repayment';
+    public const TYPE_DEBT_REVERSAL = 'debt_reversal';
+
+    public const DEBT_TYPES = [
+        self::TYPE_DEBT_LEND,
+        self::TYPE_DEBT_BORROW,
+        self::TYPE_DEBT_REPAYMENT,
+        self::TYPE_DEBT_REVERSAL,
+    ];
+
+    public function scopeForPeriod($query, $start, $end)
+    {
+        return $query->whereBetween('date', [$start, $end]);
+    }
+
+    public function scopeDebts($query)
+    {
+        return $query->whereIn('type', self::DEBT_TYPES);
+    }
 
     public function source(): MorphTo
     {

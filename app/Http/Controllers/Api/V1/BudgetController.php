@@ -120,7 +120,7 @@ class BudgetController extends Controller
                     'id' => $cat->id,
                     'name' => $cat->name,
                     'color' => $cat->color ?? '#6B7280',
-                    'icon' => $cat->icon ?? 'box',
+                    'icon' => $cat->icon ?? 'more-horizontal',
                     'is_system' => (bool) $cat->is_system,
                 ],
                 'allocated_amount' => $allocated,

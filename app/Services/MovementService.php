@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 
 class MovementService
 {
+    public function __construct(private readonly CurrencyConverter $currencyConverter) {}
+
     /**
      * Atomically move money between an account and/or a caisse and journal it.
      * Every public operation runs inside its own DB transaction.
@@ -20,14 +22,27 @@ class MovementService
     public function createAndFundCaisse(int|string $userId, array $data, Account $source): Caisse
     {
         return DB::transaction(function () use ($userId, $data, $source) {
-            $amount = (float) $data['budget_amount'];
-            $this->assertEnoughBalance($source, $amount);
+            $caisseCurrency = $data['currency_code'] ?? $source->currency_code;
+
+            // `budget_amount` est saisi dans la devise de la caisse (c'est
+            // l'enveloppe qu'on crée). C'est donc le montant prélevé sur le
+            // compte source qui doit être converti, sinon le solde du compte ne
+            // correspondrait pas à l'argent réellement sorti.
+            $caisseAmount = (float) $data['budget_amount'];
+            $sourceAmount = $this->currencyConverter->convert(
+                $caisseAmount,
+                $caisseCurrency,
+                $source->currency_code,
+            );
+
+            $this->assertEnoughBalance($source, $sourceAmount);
 
             $caisse = Caisse::create([
                 'user_id' => $userId,
                 'name' => $data['name'],
-                'budget_amount' => $amount,
+                'budget_amount' => $caisseAmount,
                 'spent_amount' => 0,
+                'currency_code' => $caisseCurrency,
                 'source_account_id' => $source->id,
                 'icon' => $data['icon'] ?? null,
                 'color' => $data['color'] ?? null,
@@ -35,7 +50,7 @@ class MovementService
                 'status' => 'active',
             ]);
 
-            $source->decrement('balance', $amount);
+            $source->decrement('balance', $sourceAmount);
 
             $this->record([
                 'user_id' => $userId,
@@ -44,8 +59,8 @@ class MovementService
                 'from_id' => $source->id,
                 'to_type' => 'caisse',
                 'to_id' => $caisse->id,
-                'amount' => $amount,
-                'currency_code' => $source->currency_code,
+                'amount' => $caisseAmount,
+                'currency_code' => $caisse->currency_code,
                 'label' => "Financement de la caisse « {$caisse->name} » depuis « {$source->name} »",
             ]);
 
@@ -59,10 +74,19 @@ class MovementService
             if ($caisse->status !== 'active') {
                 throw new BusinessException('Cette caisse est clôturée, vous ne pouvez plus l’alimenter.');
             }
-            $this->assertEnoughBalance($source, $amount);
+
+            // `$amount` est un apport à la caisse, donc exprimé dans sa devise.
+            $caisseCurrency = $caisse->currency_code ?? $source->currency_code;
+            $sourceAmount = $this->currencyConverter->convert(
+                $amount,
+                $caisseCurrency,
+                $source->currency_code,
+            );
+
+            $this->assertEnoughBalance($source, $sourceAmount);
 
             $caisse->increment('budget_amount', $amount);
-            $source->decrement('balance', $amount);
+            $source->decrement('balance', $sourceAmount);
 
             $this->record([
                 'user_id' => $userId,
@@ -72,7 +96,7 @@ class MovementService
                 'to_type' => 'caisse',
                 'to_id' => $caisse->id,
                 'amount' => $amount,
-                'currency_code' => $source->currency_code,
+                'currency_code' => $caisseCurrency,
                 'label' => $label ?? "Apport de {$amount} à la caisse « {$caisse->name} »",
             ]);
 
@@ -135,8 +159,16 @@ class MovementService
         return DB::transaction(function () use ($userId, $from, $to, $amount, $label) {
             $this->assertEnoughBalance($from, $amount);
 
+            $fromCurrency = $this->currencyOf($from);
+            $toCurrency = $this->currencyOf($to);
+
+            // Un transfert entre une caisse et un compte peut franchir une
+            // frontière de devise : le montant débité est libellé dans la
+            // devise source, le montant crédité dans celle de la destination.
+            $toAmount = $this->currencyConverter->convert($amount, $fromCurrency, $toCurrency);
+
             $this->debit($from, $amount);
-            $this->credit($to, $amount);
+            $this->credit($to, $toAmount);
 
             $this->record([
                 'user_id' => $userId,
@@ -146,7 +178,7 @@ class MovementService
                 'to_type' => $this->entityType($to),
                 'to_id' => $to->id,
                 'amount' => $amount,
-                'currency_code' => $this->currencyOf($from),
+                'currency_code' => $fromCurrency,
                 'label' => $label ?? "Transfert de {$amount} de « {$from->name} » vers « {$to->name} »",
             ]);
 
@@ -167,7 +199,17 @@ class MovementService
                 if (!$destAccount) {
                     throw new BusinessException('La caisse contient encore ' . $remaining . ' : choisissez un compte de destination.');
                 }
-                $destAccount->increment('balance', $remaining);
+
+                // Le reste est libellé dans la devise de la caisse : le compte
+                // de destination doit recevoir l'équivalent dans la sienne.
+                $caisseCurrency = $this->currencyOf($caisse);
+                $destAmount = $this->currencyConverter->convert(
+                    $remaining,
+                    $caisseCurrency,
+                    $destAccount->currency_code,
+                );
+
+                $destAccount->increment('balance', $destAmount);
 
                 $this->record([
                     'user_id' => $userId,
@@ -176,8 +218,8 @@ class MovementService
                     'from_id' => $caisse->id,
                     'to_type' => 'account',
                     'to_id' => $destAccount->id,
-                    'amount' => $remaining,
-                    'currency_code' => $this->currencyOf($caisse),
+                    'amount' => $destAmount,
+                    'currency_code' => $destAccount->currency_code,
                     'label' => "Restitution de la caisse « {$caisse->name} » vers « {$destAccount->name} »",
                 ]);
             } else {
@@ -205,7 +247,13 @@ class MovementService
     {
         DB::transaction(function () use ($userId, $entity, $mode, $destAccount) {
             $entityType = $this->entityType($entity);
-            $remaining = $this->currentAmount($entity);
+
+            // Pour une caisse, seul le reste à dépenser est encore mobilisable ;
+            // ce qui a déjà été dépensé n'a plus à être restitué. Pour un
+            // compte, on prend le solde.
+            $remaining = $entity instanceof Caisse
+                ? (float) $entity->budget_amount - (float) $entity->spent_amount
+                : (float) $entity->balance;
 
             if ($remaining < 0) {
                 $remaining = 0;
@@ -216,7 +264,15 @@ class MovementService
                     if (!$destAccount) {
                         throw new BusinessException('Redirection demandée : choisissez un compte de destination.');
                     }
-                    $this->credit($destAccount, $remaining);
+
+                    $entityCurrency = $this->currencyOf($entity);
+                    $destAmount = $this->currencyConverter->convert(
+                        $remaining,
+                        $entityCurrency,
+                        $destAccount->currency_code,
+                    );
+
+                    $this->credit($destAccount, $destAmount);
 
                     $this->record([
                         'user_id' => $userId,
@@ -225,8 +281,8 @@ class MovementService
                         'from_id' => $entity->id,
                         'to_type' => 'account',
                         'to_id' => $destAccount->id,
-                        'amount' => $remaining,
-                        'currency_code' => $this->currencyOf($entity),
+                        'amount' => $destAmount,
+                        'currency_code' => $destAccount->currency_code,
                         'label' => "Suppression : « {$entity->name} » redirigé vers « {$destAccount->name} »",
                     ]);
                 } else {
@@ -273,7 +329,9 @@ class MovementService
     public function revertExpenseFromCaisse(int|string $userId, Caisse $caisse, float $amount, ?string $label = null): void
     {
         DB::transaction(function () use ($userId, $caisse, $amount, $label) {
-            $caisse->decrement('spent_amount', $amount);
+            // On ne rend jamais plus que ce qui a été consommé, sinon le quota
+            // restant deviendrait supérieur au budget alloué.
+            $caisse->decrement('spent_amount', min($amount, (float) $caisse->spent_amount));
 
             $this->record([
                 'user_id' => $userId,
@@ -290,6 +348,12 @@ class MovementService
 
     public function record(array $data): Movement
     {
+        // Sans date explicite, le mouvement est daté du jour où il est écrit :
+        // sinon il disparaît de tout filtrage par période.
+        if (empty($data['date'])) {
+            $data['date'] = now()->format('Y-m-d');
+        }
+
         return Movement::create($data);
     }
 
@@ -325,7 +389,15 @@ class MovementService
 
     protected function currencyOf(Model $entity): string
     {
-        return $entity instanceof Account ? $entity->currency_code : ($entity->sourceAccount?->currency_code ?? 'EUR');
+        if ($entity instanceof Account) {
+            return $entity->currency_code;
+        }
+
+        // La caisse a sa propre devise ; l'héritage du compte source ne sert
+        // plus que de repli pour les caisses créées avant la colonne.
+        return $entity->currency_code
+            ?? $entity->sourceAccount?->currency_code
+            ?? 'EUR';
     }
 
     protected function entityType(Model $entity): string

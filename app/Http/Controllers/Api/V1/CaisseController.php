@@ -26,6 +26,7 @@ class CaisseController extends Controller
             'name' => 'required|string|max:255',
             'budget_amount' => 'required|numeric|min:0.01',
             'source_account_id' => 'required|uuid|exists:accounts,id',
+            'currency_code' => 'nullable|string|size:3',
             'icon' => 'nullable|string',
             'color' => 'nullable|string',
             'description' => 'nullable|string',
@@ -33,6 +34,11 @@ class CaisseController extends Controller
 
         $userId = $request->user()->id;
         $source = Account::where('user_id', $userId)->findOrFail($validated['source_account_id']);
+
+        // La caisse porte sa propre devise : celle du compte source par défaut,
+        // mais découplée, car une caisse doit pouvoir être alimentée depuis un
+        // compte d'une autre devise (convertie par le taux en vigueur).
+        $validated['currency_code'] = $validated['currency_code'] ?? $source->currency_code;
 
         $caisse = $this->movements->createAndFundCaisse($userId, $validated, $source);
 

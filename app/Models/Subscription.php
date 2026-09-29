@@ -37,6 +37,11 @@ class Subscription extends Model
         return $this->belongsTo(Account::class);
     }
 
+    public function caisse(): BelongsTo
+    {
+        return $this->belongsTo(Caisse::class);
+    }
+
     public function getAnnualCostAttribute(): float
     {
         return (float) $this->amount * $this->billing_cycle->annualMultiplier();

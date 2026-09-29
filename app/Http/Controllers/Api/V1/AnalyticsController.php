@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Models\Category;
+use App\Services\CashFlowService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
 class AnalyticsController extends Controller
 {
+    public function __construct(private readonly CashFlowService $cashFlow) {}
     public function trends(Request $request)
     {
         $userId = $request->user()->id;
@@ -58,11 +60,20 @@ class AnalyticsController extends Controller
             if (isset($buckets[$key])) $buckets[$key]['expenses'] += (float) $row->amount;
         }
 
+        // Debt flows are real cash flows, so the charts must include them too.
+        $cashBuckets = $this->cashFlow->buckets($userId, $start, $end, $daily ? 'Y-m-d' : 'Y-m');
+
+        foreach ($cashBuckets as $key => $flow) {
+            if (! isset($buckets[$key])) continue;
+            $buckets[$key]['incomes'] += $flow['in'];
+            $buckets[$key]['expenses'] += $flow['out'];
+        }
+
         $trends = array_values(array_map(fn ($b) => [
             'month' => $b['label'],
-            'incomes' => $b['incomes'],
-            'expenses' => $b['expenses'],
-            'savings' => max(0, $b['incomes'] - $b['expenses']),
+            'incomes' => round($b['incomes'], 2),
+            'expenses' => round($b['expenses'], 2),
+            'savings' => max(0, round($b['incomes'] - $b['expenses'], 2)),
         ], $buckets));
 
         return response()->json(['data' => $trends]);
@@ -103,7 +114,7 @@ class AnalyticsController extends Controller
                 'amount' => (float) $row->total,
                 'percentage' => $grandTotal > 0 ? round(((float) $row->total / $grandTotal) * 100, 1) : 0,
                 'color' => $cat?->color ?? '#6366F1',
-                'icon' => $cat?->icon ?? '📦',
+                'icon' => $cat?->icon ?? 'more-horizontal',
                 'count' => (int) $row->cnt,
             ];
         });
@@ -118,22 +129,24 @@ class AnalyticsController extends Controller
         $summary = [];
         // Last 6 months summary
         for ($i = 5; $i >= 0; $i--) {
-            $m = Carbon::now()->subMonths($i);
+            $m = Carbon::now()->subMonths($i)->startOfMonth();
+
+            $flow = $this->cashFlow->forPeriod($userId, $m, $m->copy()->endOfMonth());
 
             $incomes = (float) Income::where('user_id', $userId)
                 ->whereYear('date', $m->year)->whereMonth('date', $m->month)
-                ->sum('amount');
+                ->sum('amount') + $flow['in'];
             $expenses = (float) Expense::where('user_id', $userId)
                 ->whereYear('date', $m->year)->whereMonth('date', $m->month)
-                ->sum('amount');
+                ->sum('amount') + $flow['out'];
 
             $summary[] = [
                 'month' => (int) $m->month,
                 'year' => (int) $m->year,
-                'incomes' => $incomes,
-                'expenses' => $expenses,
-                'savings' => max(0, $incomes - $expenses),
-                'surplus' => $incomes - $expenses,
+                'incomes' => round($incomes, 2),
+                'expenses' => round($expenses, 2),
+                'savings' => max(0, round($incomes - $expenses, 2)),
+                'surplus' => round($incomes - $expenses, 2),
                 'top_categories' => [],
                 'daily_spending' => [],
             ];

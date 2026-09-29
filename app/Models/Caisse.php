@@ -18,6 +18,7 @@ class Caisse extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
+        'currency_code' => 'string',
         'budget_amount' => 'decimal:2',
         'spent_amount' => 'decimal:2',
         'status' => 'string',
@@ -37,6 +38,15 @@ class Caisse extends Model
     public function sourceAccount(): BelongsTo
     {
         return $this->belongsTo(Account::class, 'source_account_id');
+    }
+
+    /**
+     * Abonnements adossés à cette caisse. Dettes et factures sont liées par
+     * `caisse_id` sur leurs lignes de règlement, pas par une relation ici.
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
     }
 
     public function getRemainingAttribute(): float

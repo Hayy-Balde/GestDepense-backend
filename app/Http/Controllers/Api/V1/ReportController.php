@@ -9,14 +9,21 @@ use App\Models\Account;
 use App\Models\Caisse;
 use App\Models\Expense;
 use App\Models\Income;
+use App\Services\CashFlowService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
 class ReportController extends Controller
 {
+    public function __construct(private readonly CashFlowService $cashFlow) {}
+
     /**
      * Résumé de la période (un ou plusieurs mois) : état actuel des comptes,
-     * tableau des revenus, tableau des dépenses, et totaux.
+     * tableau des revenus, tableau des dépenses, opérations de dettes, et totaux.
+     *
+     * Les dettes sont de véritables flux de trésorerie : un prêt accordé est une
+     * sortie, un emprunt reçu une entrée, un remboursement reçu une entrée et un
+     * remboursement versé une sortie. Les omettre fausserait le solde net.
      */
     public function summary(Request $request)
     {
@@ -48,9 +55,14 @@ class ReportController extends Controller
 
         $caisses = Caisse::with('sourceAccount')->where('user_id', $userId)->orderBy('name')->get()
             ->map(fn (Caisse $c) => [
+                'id' => $c->id,
                 'name' => $c->name,
                 'status' => $c->status,
-                'currency_code' => $c->sourceAccount?->currency_code ?? 'EUR',
+                // La caisse porte sa propre devise ; le compte source n'est plus
+                // qu'un repli pour les caisses créées avant la colonne.
+                'currency_code' => $c->currency_code
+                    ?? $c->sourceAccount?->currency_code
+                    ?? 'EUR',
                 'budget_amount' => (float) $c->budget_amount,
                 'spent_amount' => (float) $c->spent_amount,
                 'remaining' => round((float) $c->budget_amount - (float) $c->spent_amount, 2),
@@ -85,10 +97,23 @@ class ReportController extends Controller
                 'status' => $e->status?->value ?? $e->status,
             ]);
 
+        $cashFlow = $this->cashFlow->forPeriod($userId, $start, $end);
+        $cashEvents = $this->cashFlow->events($userId, $start, $end);
+
+        $totalIncomes = (float) $incomes->sum('amount') + $cashFlow['in'];
+        $totalExpenses = (float) $expenses->sum('amount') + $cashFlow['out'];
+
         $totals = [
-            'incomes' => $incomes->sum('amount'),
-            'expenses' => $expenses->sum('amount'),
-            'net' => round($incomes->sum('amount') - $expenses->sum('amount'), 2),
+            'incomes' => round($totalIncomes, 2),
+            'expenses' => round($totalExpenses, 2),
+            'net' => round($totalIncomes - $totalExpenses, 2),
+            'incomes_base' => (float) $incomes->sum('amount'),
+            'expenses_base' => (float) $expenses->sum('amount'),
+            'debt_in' => $cashFlow['debts']['in'],
+            'debt_out' => $cashFlow['debts']['out'],
+            'invoice_in' => $cashFlow['invoices']['in'],
+            'invoice_out' => $cashFlow['invoices']['out'],
+            'subscription_out' => $cashFlow['subscriptions']['out'],
         ];
 
         return response()->json([
@@ -103,6 +128,8 @@ class ReportController extends Controller
             'caisses' => $caisses->values(),
             'incomes' => $incomes->values(),
             'expenses' => $expenses->values(),
+            'cash_events' => $cashEvents,
+            'cash_flow' => $cashFlow,
             'totals' => $totals,
         ]);
     }
