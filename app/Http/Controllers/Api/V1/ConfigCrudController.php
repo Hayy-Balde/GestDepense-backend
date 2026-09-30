@@ -34,6 +34,8 @@ abstract class ConfigCrudController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->authorizeAdmin();
+
         $model = $this->model();
         $data = $request->validate($this->validationRules(false));
 
@@ -49,6 +51,8 @@ abstract class ConfigCrudController extends Controller
 
     public function update(Request $request, $value): JsonResponse
     {
+        $this->authorizeAdmin();
+
         $model = $this->model();
         $item = $model::findOrFail($value);
         $data = $request->validate($this->validationRules(true));
@@ -59,9 +63,29 @@ abstract class ConfigCrudController extends Controller
 
     public function destroy($value): JsonResponse
     {
+        $this->authorizeAdmin();
+
         $model = $this->model();
         $item = $model::findOrFail($value);
         $item->delete();
         return response()->json(null, 204);
+    }
+
+    /**
+     * Ces référentiels sont globaux et partagés par tous les comptes : les lire
+     * alimente les listes déroulantes, mais les modifier impacterait la
+     * comptabilité des autres utilisateurs. L'écriture est donc réservée à
+     * l'administrateur.
+     *
+     * La vérification est faite ici plutôt qu'en middleware sur les routes, ce
+     * qui évite qu'un oubli de déclaration rouvre l'accès.
+     */
+    private function authorizeAdmin(): void
+    {
+        $user = request()->user();
+
+        if ($user === null || ! $user->isAdmin()) {
+            abort(403, 'Accès réservé aux administrateurs.');
+        }
     }
 }

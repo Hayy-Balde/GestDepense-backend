@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Controllers\Concerns\DefinesEntryRules;
 use App\Http\Controllers\Controller;
 use App\Models\Expense;
 use App\Services\ExpenseService;
@@ -11,6 +12,8 @@ use App\Repositories\Interfaces\ExpenseRepositoryInterface;
 
 class ExpenseController extends Controller
 {
+    use DefinesEntryRules;
+
     protected ExpenseService $expenseService;
     protected ExpenseRepositoryInterface $expenseRepository;
 
@@ -28,16 +31,8 @@ class ExpenseController extends Controller
 
     public function store(Request $request) 
     { 
-        $validated = $request->validate([
-            'amount' => 'required|numeric|min:0.01',
-            'title' => 'required|string|max:255',
-            'account_id' => 'required|uuid|exists:accounts,id',
-            'category_id' => 'required|uuid|exists:categories,id',
-            'date' => 'required|date',
-            'currency_code' => 'required|string|size:3',
-            'caisse_id' => 'nullable|uuid|exists:caisses,id',
-        ]);
-        
+        $validated = $request->validate($this->expenseRules(false));
+
         // Add user_id automatically
         $validated['user_id'] = $request->user()->id ?? null;
 
@@ -55,7 +50,7 @@ class ExpenseController extends Controller
 
     public function update(Request $request, $id) 
     { 
-        $expense = $this->expenseService->updateExpense($id, $request->all());
+        $expense = $this->expenseService->updateExpense($id, $request->validate($this->expenseRules(true)));
         return response()->json([
             'message' => 'Dépense mise à jour avec succès.',
             'expense' => $expense,

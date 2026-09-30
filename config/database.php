@@ -96,7 +96,11 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // `prefer` se replie silencieusement sur une connexion en clair
+            // si le serveur ne l'exige pas. On impose donc TLS dès que
+            // l'environnement n'est pas local, ce qui préserve le poste de
+            // développement tout en refusant une base distante en clair.
+            'sslmode' => env('DB_SSLMODE', env('APP_ENV') === 'production' ? 'require' : 'prefer'),
         ],
 
         'sqlsrv' => [

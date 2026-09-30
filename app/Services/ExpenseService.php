@@ -99,6 +99,12 @@ class ExpenseService
         return \Illuminate\Support\Facades\DB::transaction(function () use ($id, $data) {
             $expense = Expense::findOrFail($id);
 
+            // Défense en profondeur : même avec une liste blanche côté contrôleur,
+            // on refuse toute tentative de changer le propriétaire de la ligne.
+            // Sans cela, un `PUT` mal contraint déplaçait la dépense (et son
+            // impact budgétaire) vers le compte d'un autre utilisateur.
+            $data['user_id'] = $expense->user_id;
+
             $oldAccountId = $expense->account_id;
             $oldCaisseId = $expense->caisse_id;
             $oldAmount = (float) $expense->amount;

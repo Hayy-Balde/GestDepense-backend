@@ -114,4 +114,18 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Remember Token Lifetime
+    |--------------------------------------------------------------------------
+    |
+    | Durée de vie du jeton API lorsque l'utilisateur coche « se souvenir de
+    | moi » à la connexion. Sans cette option, c'est `sanctum.expiration` qui
+    | s'applique. La case était sans effet : le frontend l'envoyait
+    | mais le backend l'ignorait.
+    |
+    */
+
+    'remember_token_lifetime_minutes' => (int) env('AUTH_REMEMBER_LIFETIME_MINUTES', 60 * 24 * 30),
+
 ];

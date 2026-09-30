@@ -12,8 +12,10 @@ WORKDIR /app
 # Application
 COPY . .
 
-# Create .env from example
-RUN cp .env.example .env
+# Aucun fichier .env n'est créé dans l'image : la configuration provient
+# exclusivement des variables d'environnement de la plateforme. Copier
+# `.env.example` en `.env` figeait des valeurs (dont des identifiants) dans
+# l'image, qui prenaient le pas sur l'environnement réel.
 
 # Install dependencies
 RUN composer install --no-dev --optimize-autoloader

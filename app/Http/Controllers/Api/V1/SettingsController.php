@@ -4,14 +4,20 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 use OTPHP\TOTP;
 
 class SettingsController extends Controller
 {
+    public function __construct(
+        protected AuditService $audit,
+    ) {}
+
     public function profile(Request $request)
     {
         return response()->json($request->user());
@@ -68,7 +74,7 @@ class SettingsController extends Controller
     {
         $validated = $request->validate([
             'current_password' => 'required|string',
-            'new_password' => 'required|string|min:8|confirmed',
+            'new_password' => ['required', 'string', 'confirmed', PasswordRule::min(12)->letters()->mixedCase()->numbers()->symbols()],
         ]);
 
         $user = $request->user();
@@ -82,6 +88,14 @@ class SettingsController extends Controller
         $user->update([
             'password' => Hash::make($validated['new_password']),
         ]);
+
+        // Un changement de mot de passe doit invalider les sessions existantes :
+        // c'est typiquement l'utilisateur qui la fait précisément parce qu'il
+        // suspecte une compromission. On préserve uniquement le jeton courant.
+        $currentTokenId = $request->user()->currentAccessToken()?->id;
+        $user->tokens()->when($currentTokenId, fn ($query) => $query->whereKeyNot($currentTokenId))->delete();
+
+        $this->audit->log(AuditService::PASSWORD_CHANGED, $user);
 
         return response()->json([
             'message' => 'Mot de passe mis à jour avec succès.',
@@ -128,6 +142,10 @@ class SettingsController extends Controller
         }
 
         $token->delete();
+
+        $this->audit->log(AuditService::SESSION_REVOKED, $request->user(), [
+            'session_id' => $id,
+        ]);
 
         return response()->json(['message' => 'Session révoquée.']);
     }
@@ -189,6 +207,8 @@ class SettingsController extends Controller
             'two_factor_confirmed_at' => now(),
         ]);
 
+        $this->audit->log(AuditService::TWO_FACTOR_ENABLED, $user);
+
         return response()->json([
             'message' => '2FA activée avec succès.',
             'recovery_codes' => $recoveryCodes,
@@ -220,6 +240,8 @@ class SettingsController extends Controller
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
         ]);
+
+        $this->audit->log(AuditService::TWO_FACTOR_DISABLED, $user);
 
         return response()->json([
             'message' => '2FA désactivée.',

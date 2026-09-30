@@ -44,13 +44,15 @@ return [
     | Expiration Minutes
     |--------------------------------------------------------------------------
     |
-    | This value controls the number of minutes until an issued token will be
-    | considered expired. This will override any values set in the token's
-    | "expires_at" attribute, but first-party sessions are not affected.
+    | An unset value means the tokens do not expire: a token leaked once stays
+    | valid forever, with no way to invalidate it other than rotating the
+    | password. The lifetime below is applied to every issued API token when the
+    | user does not ask to be remembered; `auth.remember_token_lifetime_minutes`
+    | covers the "remember me" case.
     |
     */
 
-    'expiration' => null,
+    'expiration' => (int) env('SANCTUM_TOKEN_EXPIRATION_MINUTES', 60 * 24),
 
     /*
     |--------------------------------------------------------------------------

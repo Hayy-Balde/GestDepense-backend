@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Controllers\Concerns\ValidatesTargets;
 use App\Http\Controllers\Controller;
 use App\Models\Budget;
 use App\Models\BudgetCategory;
@@ -13,6 +14,8 @@ use Carbon\Carbon;
 
 class BudgetController extends Controller
 {
+    use ValidatesTargets;
+
     public function index(Request $request)
     {
         if ($request->has('month') && $request->has('year')) {
@@ -34,27 +37,31 @@ class BudgetController extends Controller
 
     public function store(Request $request)
     {
+        $userId = $request->user()->id;
+
         $validated = $request->validate([
             'month' => 'required|integer|min:1|max:12',
             'year' => 'required|integer',
-            'total_budget' => 'required|numeric',
+            'total_budget' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
             'categories' => 'required|array',
+            'categories.*.category_id' => ['required', 'uuid', $this->ownedOrSystemCategory()],
+            // `spent_amount` est une donnée calculée à partir des dépenses
+            // réelles (voir `recalculate` plus bas) : l'accepter du client
+            // permettait d'afficher un budget faux sans créer de dépense.
+            'categories.*.allocated_amount' => 'required|numeric|min:0',
         ]);
 
         try{
-            $validated['user_id'] = $request->user()->id;
-
             DB::beginTransaction();
-            
+
             // Update or Create
             $budget = Budget::updateOrCreate(
-                ['user_id' => $validated['user_id'], 'month' => $validated['month'], 'year' => $validated['year']],
+                ['user_id' => $userId, 'month' => $validated['month'], 'year' => $validated['year']],
                 ['total_budget' => $validated['total_budget'], 'notes' => $validated['notes'] ?? null]
             );
 
             foreach ($validated['categories'] as $categorie) {
-                $categorie['user_id'] = $request->user()->id;
                 BudgetCategory::updateOrCreate(
                     [
                         'budget_id' => $budget->id,
@@ -62,7 +69,6 @@ class BudgetController extends Controller
                     ],
                     [
                         'allocated_amount' => $categorie['allocated_amount'],
-                        'spent_amount' => $categorie['spent_amount'] ?? 0,
                     ]
                 );
             }

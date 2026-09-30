@@ -136,7 +136,7 @@
             <a href="{{ env('FRONTEND_URL', '#') }}" target="_blank" rel="noopener" class="primary">
                 Accéder à l'application
             </a>
-            <a href="{{ route('testbd') }}" class="secondary">
+            <a href="{{ route('health') }}" class="secondary">
                 Tester la base de données
             </a>
         </div>

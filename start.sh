@@ -36,5 +36,15 @@ php artisan route:cache
 nginx -g 'daemon off;' &
 NGINX_PID=$!
 
+# Consommateur de la file d'attente.
+#
+# Les jobs (renouvellement d'abonnements, traitement des récurrences) sont
+# `ShouldQueue` : sans ce processus, ils s'accumulent dans la table `jobs` sans
+# jamais être exécutés. Le planificateur étant déclaré dans render.yaml, il n'a
+# pas besoin d'être lancé ici.
+if [ "${RUN_QUEUE_WORKER:-true}" = "true" ]; then
+    php artisan queue:work --sleep=3 --tries=3 --max-time=3600 --verbose &
+fi
+
 # Démarrage de PHP-FPM au premier plan
 php-fpm -F -R

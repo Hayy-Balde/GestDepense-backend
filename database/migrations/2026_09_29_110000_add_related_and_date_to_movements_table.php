@@ -17,8 +17,15 @@ return new class extends Migration
             $table->index(['user_id', 'date'], 'movements_user_date_index');
         });
 
+        // Remplissage en SQL portable : le cast `created_at::date` est
+        // spécifique à PostgreSQL et faisait échouer toute la suite de tests,
+        // qui tourne sur SQLite.
+        $driver = DB::connection()->getDriverName();
+
         DB::table('movements')->whereNull('date')->update([
-            'date' => DB::raw('created_at::date'),
+            'date' => $driver === 'sqlite'
+                ? DB::raw("date(created_at)")
+                : DB::raw('created_at::date'),
         ]);
     }
 

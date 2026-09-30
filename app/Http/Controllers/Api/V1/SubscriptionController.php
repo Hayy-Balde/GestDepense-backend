@@ -33,7 +33,7 @@ class SubscriptionController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'amount' => 'required|numeric',
+            'amount' => 'required|numeric|min:0.01',
             'currency_code' => 'required|string|size:3',
             'billing_cycle' => 'required|string', // monthly, yearly, etc
             'next_billing_date' => 'required|date',
@@ -51,11 +51,11 @@ class SubscriptionController extends Controller
     public function update(Request $request, string $id)
     {
         $user_id = $request->user()->id;
-        $sub = Subscription::where('user_id',$user_id)->find($id);
+        $sub = Subscription::where('user_id',$user_id)->findOrFail($id);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'amount' => 'required|numeric',
+            'amount' => 'required|numeric|min:0.01',
             'currency_code' => 'required|string|size:3',
             'billing_cycle' => 'required|string', // monthly, yearly, etc
             'next_billing_date' => 'required|date',
@@ -74,7 +74,7 @@ class SubscriptionController extends Controller
     public function toggle(Request $request, string $id)
     {
         $user_id = $request->user()->id;
-        $sub = Subscription::where('user_id',$user_id)->find($id);
+        $sub = Subscription::where('user_id',$user_id)->findOrFail($id);
         $sub->update(['is_active' => !$sub->is_active]);
 
         return response()->json($sub->load(['account:id,name,currency_code', 'caisse:id,name,currency_code']), 201);
@@ -183,7 +183,7 @@ class SubscriptionController extends Controller
     public function destroy(Request $request, string $id)
     {
         $user_id = $request->user()->id;
-        $sub = Subscription::where('user_id',$user_id)->find($id);
+        $sub = Subscription::where('user_id',$user_id)->findOrFail($id);
 
         if (! $sub) {
             throw ValidationException::withMessages([

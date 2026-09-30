@@ -5,14 +5,21 @@ services:
     region: frankfurt
     plan: free
     dockerfilePath: ./Dockerfile
+    # Route interne de Laravel, hors périmètre applicatif : ne divulgue rien.
     healthCheckPath: /up
+    autoDeploy: false
     envVars:
       - key: APP_ENV
         value: production
+      # Le mode debug exposait stack traces et variables d'environnement.
       - key: APP_DEBUG
-        value: false
+        value: "false"
       - key: APP_URL
         value: https://gestdepense-api.onrender.com
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: info
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_HOST
@@ -25,16 +32,54 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
+      # Connexion TLS vers PostgreSQL : le trafic DB ne doit pas circuler en clair.
+      - key: DB_SSLMODE
+        value: require
       - key: SESSION_DRIVER
         value: database
+      # Le cookie de session ne doit jamais circuler sans TLS.
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
+      - key: SESSION_ENCRYPT
+        value: "true"
+      - key: SESSION_SAME_SITE
+        value: lax
       - key: CACHE_STORE
         value: database
       - key: QUEUE_CONNECTION
         value: database
+      # Durée de vie des jetons d'API (A-11).
+      - key: SANCTUM_TOKEN_EXPIRATION_MINUTES
+        value: "1440"
+      - key: AUTH_MAX_SESSIONS
+        value: "10"
+      # Durée du jeton quand « se souvenir de moi » est coché à la connexion.
+      - key: AUTH_REMEMBER_LIFETIME_MINUTES
+        value: "43200"
       - key: SANCTUM_STATEFUL_DOMAINS
         sync: false
       - key: FRONTEND_URL
         sync: false
+      # Clé de chiffrement applicative : `sync: false` = à saisir dans le
+      # tableau de bord Render. Ne jamais la committer.
+      - key: APP_KEY
+        sync: false
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        sync: false
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_ENCRYPTION
+        value: tls
+      - key: MAIL_FROM_ADDRESS
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: Fin-Track
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
@@ -46,3 +91,12 @@ databases:
     plan: free
     databaseName: gestdepense
     user: gestdepense
+    # La base n'est pas publiquement accessible depuis Internet.
+    ipAllowList: []
+
+# Le planificateur Laravel n'est exécuté que s'il est déclaré ici : les jobs
+# d'abonnement et de purge des jetons expiraient ne partaient jamais sans cela.
+cronJobs:
+  - name: laravel-scheduler
+    schedule: "*/5 * * * *"
+    command: php /app/artisan schedule:run

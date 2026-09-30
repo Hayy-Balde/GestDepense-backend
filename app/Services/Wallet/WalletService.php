@@ -94,6 +94,8 @@ class WalletService
      */
     public function debit(MoneyTarget $target, float $amount): void
     {
+        $this->assertPositiveAmount($amount);
+
         $available = $target->available();
 
         if ($available < $amount) {
@@ -126,6 +128,8 @@ class WalletService
      */
     public function forceDebit(MoneyTarget $target, float $amount): void
     {
+        $this->assertPositiveAmount($amount);
+
         if ($target->isCaisse()) {
             $this->caisse($target)->increment('spent_amount', $amount);
 
@@ -136,12 +140,29 @@ class WalletService
     }
 
     /**
+     * Aucun mouvement d'argent ne peut être négatif.
+     *
+     * Ce garde-fou est dans le service et pas seulement dans la validation HTTP :
+     * un débit négatif/crédit positif inverserait le sens du mouvement et
+     * gonflerait le solde au lieu de le réduire, contournant ainsi le contrôle
+     * de solde et le plafond de caisse.
+     */
+    private function assertPositiveAmount(float $amount): void
+    {
+        if ($amount <= 0) {
+            throw new BusinessException('Le montant doit être strictement positif.');
+        }
+    }
+
+    /**
      * Crédite la cible. Réservé aux comptes : une caisse ne se crédite que par
      * un apport explicite (`MovementService::fundCaisse`), pas par un flux
      * entrant, sinon son budget gonflerait sans contrepartie.
      */
     public function credit(MoneyTarget $target, float $amount): void
     {
+        $this->assertPositiveAmount($amount);
+
         if ($target->isCaisse()) {
             throw new BusinessException(
                 "Impossible de créditer la caisse « {$target->name} » : utilisez « Étendre » pour l'alimenter."

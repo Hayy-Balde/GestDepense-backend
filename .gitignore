@@ -1,5 +1,25 @@
 vendor
 vendor/
 /vendor
+
+# Fichiers d'environnement : ne doivent jamais être commités.
+# Ils l'étaient, d'où la présence historique de secrets dans le dépôt.
 .env
-composer.lock
+.env.*
+!.env.example
+
+# Artefacts de build et caches
+node_modules
+/storage/logs/*
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/app/avatars/*
+/bootstrap/cache/*.php
+
+.DS_Store
+Thumbs.db
+
+# `composer.lock` est volontairement suivi : sans lui, les versions
+# installées ne sont pas reproductibles et les correctifs de sécurité
+# ne peuvent pas être vérifiés de façon fiable.

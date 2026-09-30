@@ -9,13 +9,18 @@ use Illuminate\Support\Facades\DB;
 // Social Auth (without prefix — full URL needed for OAuth redirects)
 Route::get('auth/{provider}/redirect', 'App\Http\Controllers\Api\V1\SocialAuthController@redirect');
 Route::get('auth/{provider}/callback', 'App\Http\Controllers\Api\V1\SocialAuthController@callback');
+// Échange du code de passerelle contre un jeton : en POST, pour que le code
+// n'apparaisse dans aucun journal d'accès.
+Route::post('auth/oauth/exchange', 'App\Http\Controllers\Api\V1\SocialAuthController@exchange')
+    ->middleware('throttle:sensitive');
 
 // Auth Routes
 Route::prefix('v1/auth')->group(function () {
-    Route::post('register', 'App\Http\Controllers\Api\V1\AuthController@register');
-    Route::post('login', 'App\Http\Controllers\Api\V1\AuthController@login');
-    Route::post('forgot-password', 'App\Http\Controllers\Api\V1\AuthController@forgotPassword');
-    Route::post('reset-password', 'App\Http\Controllers\Api\V1\AuthController@resetPassword');
+    Route::post('register', 'App\Http\Controllers\Api\V1\AuthController@register')->middleware('throttle:auth');
+    Route::post('login', 'App\Http\Controllers\Api\V1\AuthController@login')->middleware('throttle:auth');
+    Route::post('login/2fa', 'App\Http\Controllers\Api\V1\AuthController@verifyTwoFactorLogin')->middleware('throttle:sensitive');
+    Route::post('forgot-password', 'App\Http\Controllers\Api\V1\AuthController@forgotPassword')->middleware('throttle:auth');
+    Route::post('reset-password', 'App\Http\Controllers\Api\V1\AuthController@resetPassword')->middleware('throttle:sensitive');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('logout', 'App\Http\Controllers\Api\V1\AuthController@logout');
@@ -27,8 +32,8 @@ Route::prefix('v1/auth')->group(function () {
         Route::get('profile', [SettingsController::class, 'profile']);
         Route::put('profile', [SettingsController::class, 'updateProfile']);
         Route::put('preferences', [SettingsController::class, 'updatePreferences']);
-        Route::put('password', [SettingsController::class, 'updatePassword']);
-        Route::delete('account', [SettingsController::class, 'deleteAccount']);
+        Route::put('password', [SettingsController::class, 'updatePassword'])->middleware('throttle:sensitive');
+        Route::delete('account', [SettingsController::class, 'deleteAccount'])->middleware('throttle:sensitive');
 
         // Sessions
         Route::get('sessions', [SettingsController::class, 'sessions']);
@@ -39,9 +44,9 @@ Route::prefix('v1/auth')->group(function () {
 
         // 2FA
         Route::get('2fa', [SettingsController::class, 'twoFactorStatus']);
-        Route::post('2fa/enable', [SettingsController::class, 'enable2fa']);
-        Route::post('2fa/verify', [SettingsController::class, 'verify2fa']);
-        Route::post('2fa/disable', [SettingsController::class, 'disable2fa']);
+        Route::post('2fa/enable', [SettingsController::class, 'enable2fa'])->middleware('throttle:sensitive');
+        Route::post('2fa/verify', [SettingsController::class, 'verify2fa'])->middleware('throttle:sensitive');
+        Route::post('2fa/disable', [SettingsController::class, 'disable2fa'])->middleware('throttle:sensitive');
     });
 });
 
@@ -58,6 +63,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     // Incomes
     Route::get('incomes/stats', 'App\Http\Controllers\Api\V1\IncomeStatsController@index');
     Route::apiResource('incomes', 'App\Http\Controllers\Api\V1\IncomeController');
+
+    // Quick Entries (saisie rapide / ajout massif)
+    Route::post('quick-entries', 'App\Http\Controllers\Api\V1\QuickEntryController@store');
 
     // Categories
     Route::apiResource('categories', 'App\Http\Controllers\Api\V1\CategoryController')->only(['index', 'store', 'update', 'destroy']);

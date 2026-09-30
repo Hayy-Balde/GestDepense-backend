@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Controllers\Concerns\DefinesEntryRules;
 use App\Http\Controllers\Controller;
 use App\Models\Income;
 use App\Services\IncomeService;
@@ -10,6 +11,8 @@ use Illuminate\Http\Request;
 
 class IncomeController extends Controller
 {
+    use DefinesEntryRules;
+
     public function __construct(
         protected IncomeService $incomeService
     ) {}
@@ -31,19 +34,8 @@ class IncomeController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'amount' => 'required|numeric|min:0.01',
-            'title' => 'required|string|max:255',
-            'account_id' => 'required|uuid|exists:accounts,id',
-            'category_id' => 'required|uuid|exists:categories,id',
-            'date' => 'required|date',
-            'currency_code' => 'required|string|size:3',
-            'payment_method' => ['sometimes', 'nullable', 'string', \Illuminate\Validation\Rule::in(['cash', 'bank_transfer', 'mobile_money', 'credit_card', 'debit_card', 'check', 'other'])],
-            'is_recurring' => 'sometimes|boolean',
-            'recurrence_rule' => 'sometimes|nullable|string|max:255',
-            'description' => 'sometimes|nullable|string|max:1000',
-        ]);
-        
+        $validated = $request->validate($this->incomeRules(false));
+
         $validated['user_id'] = $request->user()->id;
 
         $income = $this->incomeService->createIncome($validated);
@@ -62,7 +54,7 @@ class IncomeController extends Controller
     public function update(Request $request, $id)
     {
         $income = Income::where('user_id', $request->user()->id)->findOrFail($id);
-        $income = $this->incomeService->updateIncome($income, $request->all());
+        $income = $this->incomeService->updateIncome($income, $request->validate($this->incomeRules(true)));
         return response()->json([
             'message' => 'Revenu mis à jour avec succès.',
             'income' => $income,

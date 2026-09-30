@@ -55,10 +55,14 @@ class CategoryController extends Controller
             'sort_order' => 'nullable|integer',
         ]);
 
-        $category = Category::where(function ($q) use ($request) {
-            $q->where('user_id', $request->user()->id)
-              ->orWhere('is_system', true);
-        })->findOrFail($id);
+        // Les catégories système sont partagées par tous les comptes : les
+        // renommer ou supprimer fausserait l'historique de tout le monde. Le
+        // `update` acceptait `is_system` implicite via le modèle et visait
+        // indifféremment les deux types.
+        $category = Category::where('user_id', $request->user()->id)
+            ->where('is_system', false)
+            ->findOrFail($id);
+
         $category->update($validated);
         return response()->json($category);
     }
@@ -66,8 +70,9 @@ class CategoryController extends Controller
     public function destroy(Request $request, $id)
     {
         $category = Category::where('user_id', $request->user()->id)
-                            ->where('is_system', false)
-                            ->findOrFail($id);
+            ->where('is_system', false)
+            ->findOrFail($id);
+
         $category->delete();
         return response()->json(null, 204);
     }

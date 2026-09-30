@@ -1,7 +1,24 @@
 vendor
 node_modules
 .git
+.gitignore
+
+# Fichiers d'environnement : ne doivent jamais entrer dans l'image.
+# La configuration provient des variables d'environnement de la plateforme.
 .env
-.DS_Store
+.env.*
+!.env.example
+
+tests
+.phpunit.result.cache
+phpunit.xml
+phpunit.xml.dist
+
 storage/logs/*
 storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/app/avatars/*
+
+.DS_Store
+*.md

@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -11,20 +10,17 @@ Route::get('/', function () {
 });
 
 // Health check
-Route::get('/testbd', function () {
-    $db = 'disconnected';
-    try {
-        DB::connection()->getPdo();
-        $db = 'connected';
-    } catch (\Throwable) {
-        $db = 'disconnected';
-    }
+//
+// Volontairement identifié par sa route Laravel interne `/up` plutôt que par
+// une route applicative : l'ancienne route `/testbd` exposait publiquement l'état
+// de la base (et son nom révélait un test de diagnostic). Elle n'est plus
+// accessible en production.
+Route::get('/health', function () {
     return response()->json([
         'status' => 'ok',
-        'database' => $db,
         'timestamp' => now()->toIso8601String(),
     ]);
-})->name('testbd');
+})->name('health');
 
 // SPA fallback (actif seulement si le build frontend est présent dans public/)
 if (file_exists(public_path('index.html'))) {
